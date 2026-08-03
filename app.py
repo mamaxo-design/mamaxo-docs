@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+"""
+mamaXO Document Factory — web app (flat, self-contained for easy hosting).
+Colleagues sign in with a shared password, fill the form, get a branded PDF.
+Design is locked (base.css + brand.config.json); users only supply content.
+All images/fonts are embedded (assets_b64.json / base.css) so there are no
+sub-folders — the whole app is a flat set of files.
+"""
+import os, io, json, html
+from flask import Flask, request, session, redirect, send_file, render_template, Response
+from weasyprint import HTML
+
+BASE = os.path.dirname(os.path.abspath(__file__))
+CFG = json.load(open(os.path.join(BASE, "brand.config.json"), encoding="utf-8"))
+PROPS = json.load(open(os.path.join(BASE, "properties.json"), encoding="utf-8"))
+ASSETS = json.load(open(os.path.join(BASE, "assets_b64.json"), encoding="utf-8"))
+
+APP_PASSWORD = os.environ.get("APP_PASSWORD", "mamaxo2026")
+SECRET = os.environ.get("SECRET_KEY", "change-me-in-production")
+
+app = Flask(__name__, template_folder=".")
+app.secret_key = SECRET
+
+def esc(s): return html.escape(str(s if s is not None else ""))
+def A(k): return ASSETS.get(k, "")
+
+ICONS = {
+ "eye": '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+ "people": '<circle cx="9" cy="8" r="3"/><path d="M3.5 20c0-3 2.7-5 5.5-5s5.5 2 5.5 5"/><path d="M16 6a3 3 0 0 1 0 6"/><path d="M16.5 15c2.4.2 4.5 2 4.5 5"/>',
+ "globe": '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c3 3 3 15 0 18"/><path d="M12 3c-3 3-3 15 0 18"/>',
+ "building": '<rect x="4" y="3" width="10" height="18"/><path d="M14 8h6v13H4"/><path d="M7 7h2M7 11h2M7 15h2"/>',
+ "laptop": '<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/>',
+ "house": '<path d="M4 11l8-6 8 6"/><path d="M6 10v10h12V10"/><rect x="10" y="14" width="4" height="6"/>',
+ "flow": '<rect x="3" y="4" width="7" height="7" rx="1"/><rect x="14" y="13" width="7" height="7" rx="1"/><path d="M10 7h4a3 3 0 0 1 3 3v3"/>',
+ "check": '<path d="M4 12l5 5L20 6"/>', "cross": '<path d="M6 6l12 12M18 6L6 18"/>',
+}
+DIFF_ICONS = ["building", "laptop", "house", "flow"]
+def svg(icon, stroke="#E2681A", w="1.7"):
+    return f'<svg viewBox="0 0 24 24" fill="none" stroke="{stroke}" stroke-width="{w}" stroke-linecap="round" stroke-linejoin="round">{ICONS[icon]}</svg>'
+
+def cover(profile, data, lab):
+    m = lambda k, v: f'<div><div class="k">{esc(lab.get(k,k))}</div><div class="v">{esc(v) or "—"}</div></div>'
+    return f'''<section class="cover"><div class="gradbar full"></div>
+      <div class="brandbar"><img src="{A('logo_full')}" alt="mamaXO"></div>
+      <img class="badge" src="{A('logo_mark')}" alt="">
+      <div class="cover-body"><div class="kicker">{esc(profile["kicker"])}</div>
+        <h1>{esc(data.get("title") or profile["line_title"])}</h1><div class="cover-rule"></div>
+        <p class="sub">{esc(data.get("subtitle",""))}</p>
+        <div class="meta">{m("prepared_for",data.get("client"))}{m("date",data.get("date"))}
+          <div><div class="k">{esc(lab.get("prepared_by","Prepared by"))}</div><div class="v">mamaXO</div></div>
+          {m("ref",data.get("ref"))}</div></div></section>'''
+
+def catalogue_page(data, lab):
+    sel = data.get("selected") or []
+    chosen = [PROPS[i] for i in sel if 0 <= i < len(PROPS)] or PROPS[:4]
+    frm = esc(lab.get("from", "from"))
+    cards = ""
+    for p in chosen:
+        key = os.path.splitext(p["img"])[0]
+        tag = "tag" if p["status"] == "Available" else "tag soon"
+        cards += f'''<article class="pcard"><div class="ph" style="background-image:url('{A(key)}')">
+          <span class="{tag}">{esc(p["status"])}</span></div><div class="bd"><div class="loc">{esc(p["loc"])}</div>
+          <h3>{esc(p["name"])}</h3><div class="price"><span class="from">{frm}</span>€{p["price"]:,}</div>
+          <div class="specs"><span><b>{esc(p["beds"])}</b> bd</span><span><b>{esc(p["baths"])}</b> ba</span><span><b>{esc(p["area"])}</b> m²</span></div>
+          <p>{esc(p["desc"])}</p></div></article>'''
+    return f'''<div class="page"><div class="snum"><span class="n">01</span><span class="kick">Selected properties</span></div>
+      <h2>{esc(data.get("title") or "Selected properties")}</h2><hr class="rule">
+      <p class="lead">{esc(data.get("lead","A shortlist matched to your brief. Each property is verified before anyone commits."))}</p>
+      <div class="grid">{cards}</div></div>'''
+
+def content_page(data):
+    kpis = data.get("kpis") or [["€250k", "Conversion route, ≥120 m²"], ["€400k", "A standard flat"], ["~4.2%", "Median gross yield, Athens"]]
+    kh = "".join(f'<div class="kpi"><div class="n">{esc(k[0])}</div><div class="d">{esc(k[1])}</div></div>' for k in kpis)
+    return f'''<div class="page"><div class="snum"><span class="n">01</span><span class="kick">Overview</span></div>
+      <h2>{esc(data.get("title") or "Overview")}</h2><hr class="rule"><p class="lead">{esc(data.get("lead",""))}</p>
+      <div class="kpis">{kh}</div></div>'''
+
+def team_html(profile):
+    cells = ""
+    for m in profile.get("team", []):
+        av = (f'<img class="av" src="{A(m["photo"])}">' if m.get("photo") and A(m["photo"])
+              else f'<div class="av">{esc(m.get("initials","•"))}</div>')
+        cells += f'<div class="person">{av}<div class="nm">{esc(m["name"])}</div><div class="rl">{esc(m["role"])}</div></div>'
+    return cells
+
+def about_page(profile, line):
+    if line == "golden_visa":
+        eyebrow, title = "About us", "Why mamaXO"
+        sub = "An Athens-based team for international investors — local expertise, remote simplicity, support from purchase to approval."
+        cards = "".join(f'<div class="card"><div class="ico">{svg(DIFF_ICONS[i%4])}</div><h3>{esc(d["title"])}</h3><p>{esc(d["text"])}</p></div>'
+                        for i, d in enumerate(CFG.get("difference", [])))
+        block = f'<div class="label">The mamaXO difference</div><div class="feat">{cards}</div>'
+    else:
+        eyebrow, title, sub = "What we stand for", "Our values", ""
+        cards = "".join(f'<div class="card"><div class="ico">{svg(v.get("icon","globe"))}</div><h3>{esc(v["title"])}</h3><p>{esc(v["text"])}</p></div>'
+                        for v in profile.get("values", []))
+        block = f'<div class="feat three">{cards}</div>'
+    return f'''<div class="page"><div class="about"><div class="eyebrow">{esc(eyebrow)}</div>
+      <h2>{esc(title)}</h2><hr class="rule">{f'<p class="sub">{esc(sub)}</p>' if sub else ''}{block}
+      <div class="label">The team</div><div class="team">{team_html(profile)}</div></div></div>'''
+
+def secondary_page(profile, line):
+    if line == "golden_visa":
+        cards = "".join(f'<div class="card"><div class="n">{i:02d}</div><h3>{esc(s["title"])}</h3><p>{esc(s["text"])}</p></div>'
+                        for i, s in enumerate(CFG.get("services_after_purchase", []), 1))
+        return f'''<section class="services"><div class="eyebrow">After the purchase</div>
+          <h2>We stay with you</h2><hr class="rule"><p class="sub">Full support once you own — so ownership stays effortless.</p>
+          <div class="svc">{cards}</div></section>'''
+    cmp = profile.get("comparison", {})
+    us = "".join(f'<li>{svg("check","#E2681A","2.2")}{esc(x)}</li>' for x in cmp.get("us", []))
+    them = "".join(f'<li>{svg("cross","#B7B0A4","2.2")}{esc(x)}</li>' for x in cmp.get("them", []))
+    return f'''<div class="page"><h2 style="text-align:center;font-size:22pt;margin-bottom:18px">{esc(cmp.get("title","Better than a private landlord."))}</h2>
+      <div class="compare"><div class="col us"><h3>mamaXO</h3><ul>{us}</ul></div>
+      <div class="col them"><h3>{esc(cmp.get("them_label","Alternative"))}</h3><ul>{them}</ul></div></div></div>'''
+
+def plate_page(profile, lab, disclaimer, variant):
+    photo = f'<div class="bg" style="background-image:url(\'{A("plate")}\')"></div>' if variant == "photo" else ""
+    cls = "plate photo" if variant == "photo" else "plate"
+    return f'''<section class="{cls}"><div class="card">{photo}
+      <div class="eyebrow">{esc(lab.get("next_step","Next step"))}</div><h2>{esc(profile["line_title"])}</h2>
+      <p>{esc(profile["plate_blurb"])}</p><p>{esc(profile["plate_line2"])}</p>
+      <div class="pill">{esc(profile["email"])} &nbsp;·&nbsp; {esc(profile["phone"])}</div>
+      <div class="addr">{esc(profile["address"])}</div>
+      <div class="addr" style="opacity:.7;margin-top:10px;font-size:7.5pt">{esc(disclaimer)}</div></div></section>'''
+
+def build_document(data):
+    line = data.get("line", "golden_visa")
+    profile = CFG["profiles"][line]
+    lang = data.get("lang", "en")
+    lab = CFG.get("languages", {}).get("labels", {}).get(lang, {})
+    disclaimer = CFG.get("disclaimers", {}).get(lang, CFG.get("disclaimers", {}).get("en", ""))
+    ends = data.get("ends", {})
+    parts = [cover(profile, data, lab)]
+    parts.append(catalogue_page(data, lab) if data.get("type") == "catalogue" else content_page(data))
+    if ends.get("about"): parts.append(about_page(profile, line))
+    if ends.get("svc"):   parts.append(secondary_page(profile, line))
+    parts.append(plate_page(profile, lab, disclaimer, ends.get("plate", "orange")))
+    return f'''<!DOCTYPE html><html lang="{esc(lang)}"><head><meta charset="utf-8">
+      <link rel="stylesheet" href="base.css"><title>{esc(data.get("title") or "mamaXO")}</title></head><body>
+      <div class="doc-meta-footer">{esc(data.get("title") or profile["line_title"])}</div>{''.join(parts)}</body></html>'''
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        if request.form.get("password") == APP_PASSWORD:
+            session["ok"] = True
+            return redirect("/")
+        return render_template("login.html", error=True)
+    return render_template("login.html", error=False)
+
+@app.route("/logout")
+def logout():
+    session.clear(); return redirect("/login")
+
+@app.route("/")
+def index():
+    if not session.get("ok"): return redirect("/login")
+    return render_template("index.html")
+
+@app.route("/generate", methods=["POST"])
+def generate():
+    if not session.get("ok"): return Response("unauthorized", 401)
+    data = request.get_json(force=True)
+    pdf = HTML(string=build_document(data), base_url=BASE).write_pdf()
+    name = (data.get("client") or "document").strip().replace(" ", "_") + "_" + data.get("type", "doc") + ".pdf"
+    return send_file(io.BytesIO(pdf), mimetype="application/pdf", as_attachment=True, download_name=name)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 7860)), debug=False)

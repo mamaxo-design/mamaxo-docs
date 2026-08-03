@@ -1,0 +1,11 @@
+[
+ {"name":"Zorba 14","loc":"Athens Center · Plateia Attikis","price":250000,"beds":"1","baths":"1","area":"24","status":"Coming Soon","img":"p1.jpg","desc":"Boutique furnished studios; each floor can split 2-in-1. Rooftop penthouse. Delivery Q2 2027."},
+ {"name":"3S Athens","loc":"Central Athens · 3is Septemvriou","price":250000,"beds":"1","baths":"1","area":"45","status":"Coming Soon","img":"p2.jpg","desc":"Former commercial building near the universities, yields up to 5%. €10k furniture pack included. Delivery Mar 2027."},
+ {"name":"Plaza Residences","loc":"Kerameikos, Athens","price":250000,"beds":"1","baths":"1","area":"30","status":"Coming Soon","img":"p3.jpg","desc":"Rooftop Skybar with Acropolis views; several units with a 3% annual rental guarantee. Delivery Q2 2028."},
+ {"name":"F7","loc":"Piraeus · Filonos 7","price":250000,"beds":"1","baths":"1","area":"—","status":"Available","img":"p4.jpg","desc":"Ready-to-rent, steps from the port. Two-unit Golden Visa packages, gym, smart check-in. Delivery Jul 2026."},
+ {"name":"Afea Residence","loc":"Agia Marina, Aegina","price":250000,"beds":"1","baths":"1","area":"28","status":"Coming Soon","img":"p5.jpg","desc":"A+ energy class steps from the water; balconies and a premium rooftop terrace. Delivery Q1 2027."},
+ {"name":"L22","loc":"Central Athens","price":225750,"beds":"Studio","baths":"1","area":"—","status":"Coming Soon","img":"p6.jpg","desc":"Student-housing conversion, 23 units, shared gym and co-study lounge. Golden-Visa paperwork ready. Delivery Jan 2027."},
+ {"name":"Domus Residence","loc":"Acharnes, Athens","price":240000,"beds":"1","baths":"1","area":"75","status":"Coming Soon","img":"p1.jpg","desc":"Clean lines, wide terraces, LUX&EASY quality. Golden-Visa eligible. Delivery Q1 2027."},
+ {"name":"T18","loc":"Central Athens","price":263000,"beds":"1","baths":"1","area":"—","status":"Coming Soon","img":"p2.jpg","desc":"Furnished apartments up to a Floor-7 penthouse. Balconies, storage, gym. Delivery Q2 2027."},
+ {"name":"Avenue Residence","loc":"Gerakas, Athens","price":419000,"beds":"3","baths":"2","area":"120","status":"Available","img":"p3.jpg","desc":"Ready-now three-bedroom apartments, premium finishes and private parking."}
+]
