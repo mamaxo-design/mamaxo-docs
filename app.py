@@ -12,6 +12,8 @@ from weasyprint import HTML
 from docx import Document
 from docx.shared import Pt, Inches, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 CFG = json.load(open(os.path.join(BASE, "brand.config.json"), encoding="utf-8"))
@@ -38,20 +40,24 @@ ICONS = {
  "check": '<path d="M4 12l5 5L20 6"/>', "cross": '<path d="M6 6l12 12M18 6L6 18"/>',
 }
 DIFF_ICONS = ["building", "laptop", "house", "flow"]
-def svg(icon, stroke="#E2681A", w="1.7"):
-    return f'<svg viewBox="0 0 24 24" fill="none" stroke="{stroke}" stroke-width="{w}" stroke-linecap="round" stroke-linejoin="round">{ICONS[icon]}</svg>'
+def svg(icon, stroke="#E2681A", w="1.7", cls=""):
+    c = f' class="{cls}"' if cls else ""
+    return f'<svg{c} viewBox="0 0 24 24" fill="none" stroke="{stroke}" stroke-width="{w}" stroke-linecap="round" stroke-linejoin="round">{ICONS[icon]}</svg>'
 
 def cover(profile, data, lab):
-    m = lambda k, v: f'<div><div class="k">{esc(lab.get(k,k))}</div><div class="v">{esc(v) or "—"}</div></div>'
+    def m(k, v):  # only render a meta cell when the value is present
+        v = (v or "").strip()
+        return f'<div><div class="k">{esc(lab.get(k,k))}</div><div class="v">{esc(v)}</div></div>' if v else ""
+    meta = m("prepared_for", data.get("client")) + m("date", data.get("date"))
+    meta += f'<div><div class="k">{esc(lab.get("prepared_by","Prepared by"))}</div><div class="v">mamaXO</div></div>'
+    meta += m("ref", data.get("ref"))
     return f'''<section class="cover"><div class="gradbar full"></div>
       <div class="brandbar"><img src="{A('logo_full')}" alt="mamaXO"></div>
       <img class="badge" src="{A('logo_mark')}" alt="">
       <div class="cover-body"><div class="kicker">{esc(profile["kicker"])}</div>
         <h1>{esc(data.get("title") or profile["line_title"])}</h1><div class="cover-rule"></div>
         <p class="sub">{esc(data.get("subtitle",""))}</p>
-        <div class="meta">{m("prepared_for",data.get("client"))}{m("date",data.get("date"))}
-          <div><div class="k">{esc(lab.get("prepared_by","Prepared by"))}</div><div class="v">mamaXO</div></div>
-          {m("ref",data.get("ref"))}</div></div></section>'''
+        <div class="meta">{meta}</div></div></section>'''
 
 def catalogue_page(data, lab):
     sel = data.get("selected") or []
@@ -71,26 +77,43 @@ def catalogue_page(data, lab):
       <p class="lead">{esc(data.get("lead","A shortlist matched to your brief. Each property is verified before anyone commits."))}</p>
       <div class="grid">{cards}</div></div>'''
 
+def _table_html(raw):
+    rows = [r for r in (raw or "").split("\n") if r.strip()]
+    if not rows:
+        return ""
+    head = [c.strip() for c in rows[0].split("|")]
+    body = rows[1:]
+    th = "".join(f"<th>{esc(c)}</th>" for c in head)
+    trs = ""
+    for r in body:
+        tds = "".join(f"<td>{esc(c.strip())}</td>" for c in r.split("|"))
+        trs += f"<tr>{tds}</tr>"
+    return f'<table class="data"><thead><tr>{th}</tr></thead><tbody>{trs}</tbody></table>'
+
 def content_page(data):
     parts = []
     lead = (data.get("lead") or "").strip()
     if lead:
         parts.append(f'<p class="lead">{esc(lead)}</p>')
-    kpis = data.get("kpis") or []
-    if kpis:
-        kh = "".join(f'<div class="kpi"><div class="n">{esc(k[0])}</div><div class="d">{esc(k[1])}</div></div>' for k in kpis if k and k[0])
-        if kh:
-            parts.append(f'<div class="kpis">{kh}</div>')
     for s in (data.get("sections") or []):
+        typ = s.get("type", "text")
         title = (s.get("title") or "").strip()
         body = (s.get("text") or "").strip()
-        if not title and not body:
+        table = (s.get("table") or "").strip()
+        image = s.get("image") or ""
+        if not title and not body and not table and not image:
             continue
         if title:
             parts.append(f'<h2>{esc(title)}</h2><hr class="rule">')
-        for para in body.split("\n"):
-            if para.strip():
-                parts.append(f'<p>{esc(para.strip())}</p>')
+        if typ == "table" and table:
+            parts.append(_table_html(table))
+        elif typ == "image" and image:
+            cap = f'<figcaption>{esc(body)}</figcaption>' if body else ""
+            parts.append(f'<figure class="img"><img src="{image}">{cap}</figure>')
+        else:
+            for para in body.split("\n"):
+                if para.strip():
+                    parts.append(f'<p>{esc(para.strip())}</p>')
     if not parts:
         parts.append('<p class="lead" style="opacity:.5">No content yet — add sections in the form.</p>')
     return f'''<div class="page"><div class="snum"><span class="n">01</span><span class="kick">{esc(data.get("title") or "Document")}</span></div>
@@ -128,8 +151,8 @@ def secondary_page(profile, line):
           <h2>We stay with you</h2><hr class="rule"><p class="sub">Full support once you own — so ownership stays effortless.</p>
           <div class="svc">{cards}</div></section>'''
     cmp = profile.get("comparison", {})
-    us = "".join(f'<li>{svg("check","#E2681A","2.2")}{esc(x)}</li>' for x in cmp.get("us", []))
-    them = "".join(f'<li>{svg("cross","#B7B0A4","2.2")}{esc(x)}</li>' for x in cmp.get("them", []))
+    us = "".join(f'<li>{svg("check","#E2681A","2.4","ic")}{esc(x)}</li>' for x in cmp.get("us", []))
+    them = "".join(f'<li>{svg("cross","#B7B0A4","2.4","ic")}{esc(x)}</li>' for x in cmp.get("them", []))
     return f'''<div class="page"><h2 style="text-align:center;font-size:22pt;margin-bottom:18px">{esc(cmp.get("title","Better than a private landlord."))}</h2>
       <div class="compare"><div class="col us"><h3>mamaXO</h3><ul>{us}</ul></div>
       <div class="col them"><h3>{esc(cmp.get("them_label","Alternative"))}</h3><ul>{them}</ul></div></div></div>'''
@@ -172,6 +195,26 @@ def _dx_heading(doc, text, size=18):
     h = doc.add_paragraph(); r = h.add_run(text)
     r.bold = True; r.font.name = "Georgia"; r.font.size = Pt(size); r.font.color.rgb = _INK
 
+def _dx_shade(cell, hexcolor):
+    tcPr = cell._tc.get_or_add_tcPr()
+    shd = OxmlElement("w:shd"); shd.set(qn("w:val"), "clear"); shd.set(qn("w:fill"), hexcolor)
+    tcPr.append(shd)
+
+def _dx_table(doc, raw):
+    rows = [r for r in (raw or "").split("\n") if r.strip()]
+    if not rows:
+        return
+    grid = [[c.strip() for c in r.split("|")] for r in rows]
+    ncol = max(len(r) for r in grid)
+    tbl = doc.add_table(rows=0, cols=ncol); tbl.style = "Light Grid Accent 2"
+    for ri, r in enumerate(grid):
+        cells = tbl.add_row().cells
+        for ci in range(ncol):
+            val = r[ci] if ci < len(r) else ""
+            run = cells[ci].paragraphs[0].add_run(val)
+            if ri == 0:
+                run.bold = True
+
 def build_docx(data):
     line = data.get("line", "golden_visa")
     profile = CFG["profiles"][line]
@@ -181,6 +224,11 @@ def build_docx(data):
 
     doc = Document()
     st = doc.styles["Normal"]; st.font.name = "Calibri"; st.font.size = Pt(11); st.font.color.rgb = _INK
+
+    if ASSETS.get("logo_full"):
+        lp = doc.add_paragraph()
+        try: lp.add_run().add_picture(_img_stream(ASSETS["logo_full"]), width=Inches(1.7))
+        except Exception: pass
 
     p = doc.add_paragraph(); r = p.add_run(profile["kicker"].upper())
     r.bold = True; r.font.size = Pt(9); r.font.color.rgb = _ORANGE
@@ -198,11 +246,21 @@ def build_docx(data):
     if (data.get("lead") or "").strip():
         lp = doc.add_paragraph(); lr = lp.add_run(data["lead"].strip()); lr.font.size = Pt(12); lr.italic = True
     for s in (data.get("sections") or []):
+        typ = s.get("type", "text")
         title = (s.get("title") or "").strip(); body = (s.get("text") or "").strip()
-        if not title and not body: continue
+        table = (s.get("table") or "").strip(); image = s.get("image") or ""
+        if not title and not body and not table and not image: continue
         if title: _dx_heading(doc, title, size=15)
-        for para in body.split("\n"):
-            if para.strip(): doc.add_paragraph(para.strip())
+        if typ == "table" and table:
+            _dx_table(doc, table)
+        elif typ == "image" and image:
+            try: doc.add_paragraph().add_run().add_picture(_img_stream(image), width=Inches(5.5))
+            except Exception: pass
+            if body:
+                cp = doc.add_paragraph(); cr = cp.add_run(body); cr.font.size = Pt(8); cr.font.color.rgb = _MUT
+        else:
+            for para in body.split("\n"):
+                if para.strip(): doc.add_paragraph(para.strip())
 
     doc.add_page_break()
     if line == "golden_visa":
@@ -235,8 +293,19 @@ def build_docx(data):
             r2 = rpa.add_run(m["role"]); r2.font.size = Pt(8); r2.font.color.rgb = _ORANGE
 
     doc.add_paragraph()
-    _dx_heading(doc, profile["line_title"], size=15)
-    cp = doc.add_paragraph(); cp.add_run(f'{profile["email"]}   ·   {profile["phone"]}\n{profile["address"]}')
+    WHITE = RGBColor(0xFF, 0xFF, 0xFF)
+    plate = doc.add_table(rows=1, cols=1); cell = plate.rows[0].cells[0]
+    _dx_shade(cell, "E2681A")
+    def _pl(text, size, bold=False, serif=False):
+        pp = cell.add_paragraph(); pp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        rr = pp.add_run(text); rr.bold = bold; rr.font.size = Pt(size); rr.font.color.rgb = WHITE
+        if serif: rr.font.name = "Georgia"
+        return pp
+    t0 = cell.paragraphs[0]; t0.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    r0 = t0.add_run(profile["line_title"]); r0.bold = True; r0.font.name = "Georgia"; r0.font.size = Pt(16); r0.font.color.rgb = WHITE
+    _pl(profile["plate_blurb"], 10)
+    _pl(f'{profile["email"]}   ·   {profile["phone"]}', 12, bold=True)
+    _pl(profile["address"], 9)
     dp = doc.add_paragraph(); dr = dp.add_run(disclaimer); dr.font.size = Pt(8); dr.font.color.rgb = _MUT
 
     bio = io.BytesIO(); doc.save(bio); bio.seek(0); return bio
