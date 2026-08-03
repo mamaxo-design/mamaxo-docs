@@ -69,11 +69,29 @@ def catalogue_page(data, lab):
       <div class="grid">{cards}</div></div>'''
 
 def content_page(data):
-    kpis = data.get("kpis") or [["€250k", "Conversion route, ≥120 m²"], ["€400k", "A standard flat"], ["~4.2%", "Median gross yield, Athens"]]
-    kh = "".join(f'<div class="kpi"><div class="n">{esc(k[0])}</div><div class="d">{esc(k[1])}</div></div>' for k in kpis)
-    return f'''<div class="page"><div class="snum"><span class="n">01</span><span class="kick">Overview</span></div>
-      <h2>{esc(data.get("title") or "Overview")}</h2><hr class="rule"><p class="lead">{esc(data.get("lead",""))}</p>
-      <div class="kpis">{kh}</div></div>'''
+    parts = []
+    lead = (data.get("lead") or "").strip()
+    if lead:
+        parts.append(f'<p class="lead">{esc(lead)}</p>')
+    kpis = data.get("kpis") or []
+    if kpis:
+        kh = "".join(f'<div class="kpi"><div class="n">{esc(k[0])}</div><div class="d">{esc(k[1])}</div></div>' for k in kpis if k and k[0])
+        if kh:
+            parts.append(f'<div class="kpis">{kh}</div>')
+    for s in (data.get("sections") or []):
+        title = (s.get("title") or "").strip()
+        body = (s.get("text") or "").strip()
+        if not title and not body:
+            continue
+        if title:
+            parts.append(f'<h2>{esc(title)}</h2><hr class="rule">')
+        for para in body.split("\n"):
+            if para.strip():
+                parts.append(f'<p>{esc(para.strip())}</p>')
+    if not parts:
+        parts.append('<p class="lead" style="opacity:.5">No content yet — add sections in the form.</p>')
+    return f'''<div class="page"><div class="snum"><span class="n">01</span><span class="kick">{esc(data.get("title") or "Document")}</span></div>
+      {''.join(parts)}</div>'''
 
 def team_html(profile):
     cells = ""
