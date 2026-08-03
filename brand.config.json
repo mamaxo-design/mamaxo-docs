@@ -1,6 +1,5 @@
 {
   "_README": "SINGLE SOURCE OF TRUTH for every mamaXO document. Claude/Ilya must read entity, contacts, disclaimers and legal ONLY from this file — never invent or vary them. There is ONE legal entity. Fields marked TODO must be confirmed by Kira/Dan before client-facing use.",
-
   "company": {
     "brand_name": "mamaXO",
     "legal_entity": "TODO — confirm exact registered name (mamaXO … I.K.E. / ΙΚΕ)",
@@ -9,7 +8,6 @@
     "gemi_reg": "TODO — confirm GEMI registration number (if used)",
     "tagline": "Greek residency & property, done properly — from the €250,000 conversion route to hands-off management."
   },
-
   "contact": {
     "address_line": "37 Mezonos Street",
     "postcode": "10438",
@@ -21,7 +19,6 @@
     "website_property": "https://mamaxo.gr",
     "_note": "Address/phone/email taken from mamaXO's own Golden Visa documents. Legal entity name + VAT still TODO."
   },
-
   "profiles": {
     "_note": "Every document starts by choosing a line: Golden Visa or Property Management. The chosen profile drives the back-matter (About team, contact plates). GV is filled; PM is placeholders for Kira to complete.",
     "golden_visa": {
@@ -34,14 +31,54 @@
       "address": "mamaXO · 37 Mezonos Street, Athens 10438",
       "photo_plate_image": "assets/plate-athens.jpg",
       "team": [
-        {"name": "Olga Papadogianni", "role": "Co-founder", "initials": "OP", "photo": ""},
-        {"name": "Dan Tara", "role": "Co-founder · Investor Relations", "initials": "DT", "photo": ""},
-        {"name": "Clare Toumpaniari", "role": "Head of Legal", "initials": "CT", "photo": ""},
-        {"name": "Dimitris Aidins", "role": "Civil Engineer", "initials": "DA", "photo": ""},
-        {"name": "Tryfonas Chatziapostolou", "role": "Head of Accounting & Tax", "initials": "TC", "photo": ""},
-        {"name": "Maria Koutsounika", "role": "Head of Property Management", "initials": "MK", "photo": ""},
-        {"name": "Romi Tsvetanova", "role": "Property Consultant", "initials": "RT", "photo": ""},
-        {"name": "Alexandros Efthimiou", "role": "Head of Property Maintenance", "initials": "AE", "photo": ""}
+        {
+          "name": "Olga Papadogianni",
+          "role": "Co-founder",
+          "initials": "OP",
+          "photo": "team_olga"
+        },
+        {
+          "name": "Dan Tara",
+          "role": "Co-founder · Investor Relations",
+          "initials": "DT",
+          "photo": "team_dan"
+        },
+        {
+          "name": "Clare Toumpaniari",
+          "role": "Head of Legal",
+          "initials": "CT",
+          "photo": "team_clare"
+        },
+        {
+          "name": "Dimitris Aidins",
+          "role": "Civil Engineer",
+          "initials": "DA",
+          "photo": "team_dimitris"
+        },
+        {
+          "name": "Tryfonas Chatziapostolou",
+          "role": "Head of Accounting & Tax",
+          "initials": "TC",
+          "photo": "team_tryfonas"
+        },
+        {
+          "name": "Maria Koutsounika",
+          "role": "Head of Property Management",
+          "initials": "MK",
+          "photo": "team_maria"
+        },
+        {
+          "name": "Romi Tsvetanova",
+          "role": "Property Consultant",
+          "initials": "RT",
+          "photo": "team_romi"
+        },
+        {
+          "name": "Alexandros Efthimiou",
+          "role": "Head of Property Maintenance",
+          "initials": "AE",
+          "photo": "team_alexandros"
+        }
       ]
     },
     "property_management": {
@@ -54,99 +91,224 @@
       "address": "mamaXO · 37 Mezonos Street, Athens 10438",
       "photo_plate_image": "assets/plate-athens.jpg",
       "values": [
-        {"icon": "eye", "title": "Transparency by default", "text": "Every fee, every report, every deposit movement is visible. No hidden letting fees, no surprises — you only pay when the rent is actually collected."},
-        {"icon": "people", "title": "One team, end to end", "text": "Viewings, lease, rent, maintenance and reporting — handled by the same people and logged on the platform, so nothing falls through the cracks."},
-        {"icon": "globe", "title": "For local & international clients", "text": "We serve tenants and landlords alike, whether they're in Athens or abroad. Language is never a barrier — our clients speak many, and so do we."}
+        {
+          "icon": "eye",
+          "title": "Transparency by default",
+          "text": "Every fee, every report, every deposit movement is visible. No hidden letting fees, no surprises — you only pay when the rent is actually collected."
+        },
+        {
+          "icon": "people",
+          "title": "One team, end to end",
+          "text": "Viewings, lease, rent, maintenance and reporting — handled by the same people and logged on the platform, so nothing falls through the cracks."
+        },
+        {
+          "icon": "globe",
+          "title": "For local & international clients",
+          "text": "We serve tenants and landlords alike, whether they're in Athens or abroad. Language is never a barrier — our clients speak many, and so do we."
+        }
       ],
       "comparison": {
         "title": "Better than a private landlord.",
-        "us": ["Deposit protected & returned on evidence", "Fast move-in — every step is digital", "All communication logged with timestamps, ready if a dispute arises", "One team for viewings, lease & repairs", "Clear rules for tenants & owners, managed by mamaXO"],
+        "us": [
+          "Deposit protected & returned on evidence",
+          "Fast move-in — every step is digital",
+          "All communication logged with timestamps, ready if a dispute arises",
+          "One team for viewings, lease & repairs",
+          "Clear rules for tenants & owners, managed by mamaXO"
+        ],
         "them_label": "Private landlord",
-        "them": ["Deposit disputes, no paper trail", "Long time before move-in", "Slow, informal repairs", "No record of liabilities during the tenancy"]
+        "them": [
+          "Deposit disputes, no paper trail",
+          "Long time before move-in",
+          "Slow, informal repairs",
+          "No record of liabilities during the tenancy"
+        ]
       },
       "team_heading": "Real people in Athens, on your side.",
       "team": [
-        {"name": "Dan Tara", "role": "CEO", "initials": "DT", "photo": ""},
-        {"name": "Ivan Vaskovich", "role": "CTO", "initials": "IV", "photo": ""},
-        {"name": "Olga Papadogianni", "role": "Head of Operations", "initials": "OP", "photo": ""},
-        {"name": "Clare Toumpaniari", "role": "Legal & Compliance Lead", "initials": "CT", "photo": ""},
-        {"name": "Tryfonas Chatziapostolou", "role": "Accounting & Tax Lead", "initials": "TC", "photo": ""},
-        {"name": "Maria Koutsounika", "role": "Property Management Lead", "initials": "MK", "photo": ""},
-        {"name": "Romi Tsvetanova", "role": "Property Consultant", "initials": "RT", "photo": ""},
-        {"name": "Alexandros Efthimiou", "role": "Property Maintenance Team Lead", "initials": "AE", "photo": ""}
+        {
+          "name": "Dan Tara",
+          "role": "CEO",
+          "initials": "DT",
+          "photo": "team_dan"
+        },
+        {
+          "name": "Ivan Vaskovich",
+          "role": "CTO",
+          "initials": "IV",
+          "photo": "team_ivan"
+        },
+        {
+          "name": "Olga Papadogianni",
+          "role": "Head of Operations",
+          "initials": "OP",
+          "photo": "team_olga"
+        },
+        {
+          "name": "Clare Toumpaniari",
+          "role": "Legal & Compliance Lead",
+          "initials": "CT",
+          "photo": "team_clare"
+        },
+        {
+          "name": "Tryfonas Chatziapostolou",
+          "role": "Accounting & Tax Lead",
+          "initials": "TC",
+          "photo": "team_tryfonas"
+        },
+        {
+          "name": "Maria Koutsounika",
+          "role": "Property Management Lead",
+          "initials": "MK",
+          "photo": "team_maria"
+        },
+        {
+          "name": "Romi Tsvetanova",
+          "role": "Property Consultant",
+          "initials": "RT",
+          "photo": "team_romi"
+        },
+        {
+          "name": "Alexandros Efthimiou",
+          "role": "Property Maintenance Team Lead",
+          "initials": "AE",
+          "photo": "team_alexandros"
+        }
       ]
     }
   },
-
   "difference": [
-    {"title": "Local expertise", "text": "In-country expertise across the whole Golden-Visa process and the Greek property market."},
-    {"title": "Remote & simple", "text": "Built for international clients running the entire process from abroad."},
-    {"title": "Management after purchase", "text": "Ongoing on-the-ground support to manage your Greek property once you own it."},
-    {"title": "End-to-end support", "text": "One structured process — from the first consultation to residence approval."}
+    {
+      "title": "Local expertise",
+      "text": "In-country expertise across the whole Golden-Visa process and the Greek property market."
+    },
+    {
+      "title": "Remote & simple",
+      "text": "Built for international clients running the entire process from abroad."
+    },
+    {
+      "title": "Management after purchase",
+      "text": "Ongoing on-the-ground support to manage your Greek property once you own it."
+    },
+    {
+      "title": "End-to-end support",
+      "text": "One structured process — from the first consultation to residence approval."
+    }
   ],
-
   "services_after_purchase": [
-    {"title": "Residency & documents", "text": "We monitor your paperwork and renew your residence permit on time — your Golden Visa stays valid without you lifting a finger."},
-    {"title": "Accounting support", "text": "Filing tax declarations, paying property taxes and handling every local obligation on your behalf."},
-    {"title": "Legal & notary services", "text": "Property transactions, inheritance and full remote legal representation — handled by our partners in Greece."},
-    {"title": "Property management", "text": "We find and settle tenants, transfer rent to you, maintain the property and keep it insured — fully hands-off."}
+    {
+      "title": "Residency & documents",
+      "text": "We monitor your paperwork and renew your residence permit on time — your Golden Visa stays valid without you lifting a finger."
+    },
+    {
+      "title": "Accounting support",
+      "text": "Filing tax declarations, paying property taxes and handling every local obligation on your behalf."
+    },
+    {
+      "title": "Legal & notary services",
+      "text": "Property transactions, inheritance and full remote legal representation — handled by our partners in Greece."
+    },
+    {
+      "title": "Property management",
+      "text": "We find and settle tenants, transfer rent to you, maintain the property and keep it insured — fully hands-off."
+    }
   ],
-
   "sites": {
-    "ai": { "domain": "mamaxo.ai", "use_for": "company, Golden Visa advisory, brand" },
-    "gr": { "domain": "mamaxo.gr", "use_for": "property listings & management" }
+    "ai": {
+      "domain": "mamaxo.ai",
+      "use_for": "company, Golden Visa advisory, brand"
+    },
+    "gr": {
+      "domain": "mamaxo.gr",
+      "use_for": "property listings & management"
+    }
   },
-
   "brand_colors": {
     "_note": "Minimal on purpose, mirroring the published reports: ONE orange, ONE ink, three surfaces, three accents. Lighter text = the same ink at lower opacity (rgba(43,43,45,.56)), not a separate grey.",
-    "brand_orange":  "#E2681A",
-    "brand_tint":    "#FBEEDF",
-    "ink":           "#2B2B2D",
-    "muted_text":    "rgba(43,43,45,0.56)",
-    "paper":         "#FBF7F0",
-    "panel":         "#F1E9DC",
-    "line":          "#E7DCC9",
-    "gold":          "#C9A66B",
-    "positive":      "#4F8A54",
-    "negative":      "#B23A2E"
+    "brand_orange": "#E2681A",
+    "brand_tint": "#FBEEDF",
+    "ink": "#2B2B2D",
+    "muted_text": "rgba(43,43,45,0.56)",
+    "paper": "#FBF7F0",
+    "panel": "#F1E9DC",
+    "line": "#E7DCC9",
+    "gold": "#C9A66B",
+    "positive": "#4F8A54",
+    "negative": "#B23A2E"
   },
-
   "typography": {
     "display_font": "Archivo",
     "text_font": "Inter",
-    "display_weights": [400, 500, 600, 700, 800, 900],
-    "text_weights": [400, 500, 600, 700],
+    "display_weights": [
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "text_weights": [
+      400,
+      500,
+      600,
+      700
+    ],
     "preview_fallback": "Poppins (display) / Lato (text) — used only when Archivo/Inter can't load",
     "google_fonts_import": "https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap"
   },
-
   "logo": {
     "full": "assets/logo-full.png",
     "badge": "assets/logo-mark.png",
     "full_ondark": "assets/logo-full-ondark.png",
     "rules": "Three lockups: (1) logo-full.png — wordmark for light backgrounds (default, since documents are cream). (2) logo-mark.png — orange badge/circle (white mXO) for the contact page mark, avatars, small spots. (3) logo-full-ondark.png — white 'mama' wordmark, only if a rare dark detail needs it. Never recolor, stretch, or add effects. Keep clear space ≈ height of the 'o'."
   },
-
   "languages": {
     "_note": "The system is multilingual. A document is produced in ONE chosen language; content is authored in that language and the matching back-matter / disclaimer strings are pulled from this file.",
     "default": "en",
-    "supported": ["en", "ru", "tr"],
+    "supported": [
+      "en",
+      "ru",
+      "tr"
+    ],
     "labels": {
-      "en": {"prepared_for": "Prepared for", "date": "Date", "prepared_by": "Prepared by", "ref": "Ref", "next_step": "Next step", "from": "from"},
-      "ru": {"prepared_for": "Для", "date": "Дата", "prepared_by": "Подготовил", "ref": "Ref", "next_step": "Следующий шаг", "from": "от"},
-      "tr": {"prepared_for": "Hazırlanan", "date": "Tarih", "prepared_by": "Hazırlayan", "ref": "Ref", "next_step": "Sonraki adım", "from": "başlangıç"}
+      "en": {
+        "prepared_for": "Prepared for",
+        "date": "Date",
+        "prepared_by": "Prepared by",
+        "ref": "Ref",
+        "next_step": "Next step",
+        "from": "from"
+      },
+      "ru": {
+        "prepared_for": "Для",
+        "date": "Дата",
+        "prepared_by": "Подготовил",
+        "ref": "Ref",
+        "next_step": "Следующий шаг",
+        "from": "от"
+      },
+      "tr": {
+        "prepared_for": "Hazırlanan",
+        "date": "Tarih",
+        "prepared_by": "Hazırlayan",
+        "ref": "Ref",
+        "next_step": "Sonraki adım",
+        "from": "başlangıç"
+      }
     }
   },
-
   "disclaimers": {
     "en": "General information, not legal or tax advice. Figures and legal wording must be checked against official sources on the date of publication.",
     "ru": "Общая информация, не юридическая/налоговая консультация. Цифры и правовые формулировки сверять с официальными источниками на дату публикации.",
     "tr": "Genel bilgi niteliğindedir; hukuki veya vergi danışmanlığı değildir. Rakamlar ve yasal ifadeler yayın tarihinde resmi kaynaklardan doğrulanmalıdır.",
     "ai_media": "Any image, audio or video generated or altered by AI must be disclosed as AI-generated (EU AI Act, Art. 50, from 2 Aug 2026). Real Adobe Stock photos and human-edited text do not require this label."
   },
-
   "canonical_facts": {
-    "golden_visa_thresholds_eur": { "conversion_250k": 250000, "standard": 400000, "high_demand": 800000 },
+    "golden_visa_thresholds_eur": {
+      "conversion_250k": 250000,
+      "standard": 400000,
+      "high_demand": 800000
+    },
     "conversion_min_area_m2": 120,
     "no_minimum_stay": true,
     "short_term_let_on_gv_units": "restricted (long-term only)",

@@ -6,9 +6,12 @@ Design is locked (base.css + brand.config.json); users only supply content.
 All images/fonts are embedded (assets_b64.json / base.css) so there are no
 sub-folders — the whole app is a flat set of files.
 """
-import os, io, json, html
+import os, io, json, html, base64
 from flask import Flask, request, session, redirect, send_file, render_template, Response
 from weasyprint import HTML
+from docx import Document
+from docx.shared import Pt, Inches, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 CFG = json.load(open(os.path.join(BASE, "brand.config.json"), encoding="utf-8"))
@@ -157,6 +160,88 @@ def build_document(data):
       <link rel="stylesheet" href="base.css"><title>{esc(data.get("title") or "mamaXO")}</title></head><body>
       <div class="doc-meta-footer">{esc(data.get("title") or profile["line_title"])}</div>{''.join(parts)}</body></html>'''
 
+# ----------------------------------------------------------------------------- Word (.docx) export
+_ORANGE = RGBColor(0xE2, 0x68, 0x1A)
+_INK = RGBColor(0x2B, 0x2B, 0x2D)
+_MUT = RGBColor(0x7A, 0x75, 0x6B)
+
+def _img_stream(datauri):
+    return io.BytesIO(base64.b64decode(datauri.split(",", 1)[1]))
+
+def _dx_heading(doc, text, size=18):
+    h = doc.add_paragraph(); r = h.add_run(text)
+    r.bold = True; r.font.name = "Georgia"; r.font.size = Pt(size); r.font.color.rgb = _INK
+
+def build_docx(data):
+    line = data.get("line", "golden_visa")
+    profile = CFG["profiles"][line]
+    lang = data.get("lang", "en")
+    lab = CFG.get("languages", {}).get("labels", {}).get(lang, {})
+    disclaimer = CFG.get("disclaimers", {}).get(lang, CFG.get("disclaimers", {}).get("en", ""))
+
+    doc = Document()
+    st = doc.styles["Normal"]; st.font.name = "Calibri"; st.font.size = Pt(11); st.font.color.rgb = _INK
+
+    p = doc.add_paragraph(); r = p.add_run(profile["kicker"].upper())
+    r.bold = True; r.font.size = Pt(9); r.font.color.rgb = _ORANGE
+    h = doc.add_paragraph(); rr = h.add_run(data.get("title") or profile["line_title"])
+    rr.bold = True; rr.font.name = "Georgia"; rr.font.size = Pt(26); rr.font.color.rgb = _INK
+
+    meta = []
+    if data.get("client"): meta.append(f'{lab.get("prepared_for","Prepared for")}: {data["client"]}')
+    if data.get("date"):   meta.append(f'{lab.get("date","Date")}: {data["date"]}')
+    if data.get("ref"):    meta.append(f'{lab.get("ref","Ref")}: {data["ref"]}')
+    if meta:
+        mp = doc.add_paragraph(); mr = mp.add_run("   ·   ".join(meta)); mr.font.size = Pt(9); mr.font.color.rgb = _MUT
+    doc.add_paragraph()
+
+    if (data.get("lead") or "").strip():
+        lp = doc.add_paragraph(); lr = lp.add_run(data["lead"].strip()); lr.font.size = Pt(12); lr.italic = True
+    for s in (data.get("sections") or []):
+        title = (s.get("title") or "").strip(); body = (s.get("text") or "").strip()
+        if not title and not body: continue
+        if title: _dx_heading(doc, title, size=15)
+        for para in body.split("\n"):
+            if para.strip(): doc.add_paragraph(para.strip())
+
+    doc.add_page_break()
+    if line == "golden_visa":
+        _dx_heading(doc, "Why mamaXO")
+        for d in CFG.get("difference", []):
+            b = doc.add_paragraph(style="List Bullet"); br = b.add_run(d["title"] + " — "); br.bold = True; b.add_run(d["text"])
+    else:
+        _dx_heading(doc, "Our values")
+        for v in profile.get("values", []):
+            b = doc.add_paragraph(style="List Bullet"); br = b.add_run(v["title"] + " — "); br.bold = True; b.add_run(v["text"])
+
+    tp = doc.add_paragraph(); tr = tp.add_run("THE TEAM"); tr.bold = True; tr.font.size = Pt(9); tr.font.color.rgb = _ORANGE
+    team = profile.get("team", [])
+    cols = 4
+    table = doc.add_table(rows=0, cols=cols)
+    for r0 in range((len(team) + cols - 1) // cols):
+        cells = table.add_row().cells
+        for c0 in range(cols):
+            idx = r0 * cols + c0
+            if idx >= len(team): continue
+            m = team[idx]; cell = cells[c0]
+            cp = cell.paragraphs[0]; cp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            key = m.get("photo")
+            if key and ASSETS.get(key):
+                try: cp.add_run().add_picture(_img_stream(ASSETS[key]), width=Inches(1.05))
+                except Exception: pass
+            npa = cell.add_paragraph(); npa.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            nr = npa.add_run(m["name"]); nr.bold = True; nr.font.size = Pt(9)
+            rpa = cell.add_paragraph(); rpa.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            r2 = rpa.add_run(m["role"]); r2.font.size = Pt(8); r2.font.color.rgb = _ORANGE
+
+    doc.add_paragraph()
+    _dx_heading(doc, profile["line_title"], size=15)
+    cp = doc.add_paragraph(); cp.add_run(f'{profile["email"]}   ·   {profile["phone"]}\n{profile["address"]}')
+    dp = doc.add_paragraph(); dr = dp.add_run(disclaimer); dr.font.size = Pt(8); dr.font.color.rgb = _MUT
+
+    bio = io.BytesIO(); doc.save(bio); bio.seek(0); return bio
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -179,9 +264,13 @@ def index():
 def generate():
     if not session.get("ok"): return Response("unauthorized", 401)
     data = request.get_json(force=True)
+    base_name = (data.get("client") or "document").strip().replace(" ", "_") + "_" + data.get("type", "doc")
+    if data.get("format") == "docx":
+        bio = build_docx(data)
+        return send_file(bio, mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                         as_attachment=True, download_name=base_name + ".docx")
     pdf = HTML(string=build_document(data), base_url=BASE).write_pdf()
-    name = (data.get("client") or "document").strip().replace(" ", "_") + "_" + data.get("type", "doc") + ".pdf"
-    return send_file(io.BytesIO(pdf), mimetype="application/pdf", as_attachment=True, download_name=name)
+    return send_file(io.BytesIO(pdf), mimetype="application/pdf", as_attachment=True, download_name=base_name + ".pdf")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 7860)), debug=False)
