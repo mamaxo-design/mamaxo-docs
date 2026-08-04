@@ -77,17 +77,19 @@ def catalogue_page(data, lab):
       <p class="lead">{esc(data.get("lead","A shortlist matched to your brief. Each property is verified before anyone commits."))}</p>
       <div class="grid">{cards}</div></div>'''
 
-def _table_html(raw):
-    rows = [r for r in (raw or "").split("\n") if r.strip()]
+def _section_rows(s):
+    """Return the table as a list of rows (cells). Prefers the grid editor; falls back to the |-string."""
+    grid = s.get("grid")
+    if grid and any(any((c or "").strip() for c in row) for row in grid):
+        return [[(c or "").strip() for c in row] for row in grid]
+    raw = s.get("table") or ""
+    return [[c.strip() for c in r.split("|")] for r in raw.split("\n") if r.strip()]
+
+def _table_html(rows):
     if not rows:
         return ""
-    head = [c.strip() for c in rows[0].split("|")]
-    body = rows[1:]
-    th = "".join(f"<th>{esc(c)}</th>" for c in head)
-    trs = ""
-    for r in body:
-        tds = "".join(f"<td>{esc(c.strip())}</td>" for c in r.split("|"))
-        trs += f"<tr>{tds}</tr>"
+    th = "".join(f"<th>{esc(c)}</th>" for c in rows[0])
+    trs = "".join("<tr>" + "".join(f"<td>{esc(c)}</td>" for c in r) + "</tr>" for r in rows[1:])
     return f'<table class="data"><thead><tr>{th}</tr></thead><tbody>{trs}</tbody></table>'
 
 def content_page(data):
@@ -99,14 +101,16 @@ def content_page(data):
         typ = s.get("type", "text")
         title = (s.get("title") or "").strip()
         body = (s.get("text") or "").strip()
-        table = (s.get("table") or "").strip()
         image = s.get("image") or ""
-        if not title and not body and not table and not image:
+        has_table = typ == "table" and bool(_section_rows(s))
+        if not title and not body and not has_table and not image:
             continue
         if title:
             parts.append(f'<h2>{esc(title)}</h2><hr class="rule">')
-        if typ == "table" and table:
-            parts.append(_table_html(table))
+        if typ == "table":
+            rows = _section_rows(s)
+            if rows:
+                parts.append(_table_html(rows))
         elif typ == "image" and image:
             cap = f'<figcaption>{esc(body)}</figcaption>' if body else ""
             parts.append(f'<figure class="img"><img src="{image}">{cap}</figure>')
@@ -200,14 +204,22 @@ def _dx_shade(cell, hexcolor):
     shd = OxmlElement("w:shd"); shd.set(qn("w:val"), "clear"); shd.set(qn("w:fill"), hexcolor)
     tcPr.append(shd)
 
-def _dx_table(doc, raw):
-    rows = [r for r in (raw or "").split("\n") if r.strip()]
+def _dx_bg(doc, hexcolor):
+    """Beige document background (visible in Word; enable 'print background colors' to print it)."""
+    docEl = doc.element
+    bg = OxmlElement("w:background"); bg.set(qn("w:color"), hexcolor)
+    docEl.insert(0, bg)
+    try:
+        dbs = OxmlElement("w:displayBackgroundShape"); doc.settings.element.append(dbs)
+    except Exception:
+        pass
+
+def _dx_table(doc, rows):
     if not rows:
         return
-    grid = [[c.strip() for c in r.split("|")] for r in rows]
-    ncol = max(len(r) for r in grid)
+    ncol = max(len(r) for r in rows)
     tbl = doc.add_table(rows=0, cols=ncol); tbl.style = "Light Grid Accent 2"
-    for ri, r in enumerate(grid):
+    for ri, r in enumerate(rows):
         cells = tbl.add_row().cells
         for ci in range(ncol):
             val = r[ci] if ci < len(r) else ""
@@ -224,16 +236,22 @@ def build_docx(data):
 
     doc = Document()
     st = doc.styles["Normal"]; st.font.name = "Calibri"; st.font.size = Pt(11); st.font.color.rgb = _INK
+    _dx_bg(doc, "FBF7F0")
 
+    # --- cover ---
+    if ASSETS.get("gradbar_img"):
+        gp = doc.add_paragraph()
+        try: gp.add_run().add_picture(_img_stream(ASSETS["gradbar_img"]), width=Inches(6.5))
+        except Exception: pass
     if ASSETS.get("logo_full"):
         lp = doc.add_paragraph()
-        try: lp.add_run().add_picture(_img_stream(ASSETS["logo_full"]), width=Inches(1.7))
+        try: lp.add_run().add_picture(_img_stream(ASSETS["logo_full"]), width=Inches(1.9))
         except Exception: pass
 
     p = doc.add_paragraph(); r = p.add_run(profile["kicker"].upper())
     r.bold = True; r.font.size = Pt(9); r.font.color.rgb = _ORANGE
     h = doc.add_paragraph(); rr = h.add_run(data.get("title") or profile["line_title"])
-    rr.bold = True; rr.font.name = "Georgia"; rr.font.size = Pt(26); rr.font.color.rgb = _INK
+    rr.bold = True; rr.font.name = "Georgia"; rr.font.size = Pt(28); rr.font.color.rgb = _INK
 
     meta = []
     if data.get("client"): meta.append(f'{lab.get("prepared_for","Prepared for")}: {data["client"]}')
@@ -241,18 +259,19 @@ def build_docx(data):
     if data.get("ref"):    meta.append(f'{lab.get("ref","Ref")}: {data["ref"]}')
     if meta:
         mp = doc.add_paragraph(); mr = mp.add_run("   ·   ".join(meta)); mr.font.size = Pt(9); mr.font.color.rgb = _MUT
-    doc.add_paragraph()
+    doc.add_page_break()
 
     if (data.get("lead") or "").strip():
         lp = doc.add_paragraph(); lr = lp.add_run(data["lead"].strip()); lr.font.size = Pt(12); lr.italic = True
     for s in (data.get("sections") or []):
         typ = s.get("type", "text")
         title = (s.get("title") or "").strip(); body = (s.get("text") or "").strip()
-        table = (s.get("table") or "").strip(); image = s.get("image") or ""
-        if not title and not body and not table and not image: continue
+        image = s.get("image") or ""
+        rows = _section_rows(s) if typ == "table" else []
+        if not title and not body and not rows and not image: continue
         if title: _dx_heading(doc, title, size=15)
-        if typ == "table" and table:
-            _dx_table(doc, table)
+        if typ == "table" and rows:
+            _dx_table(doc, rows)
         elif typ == "image" and image:
             try: doc.add_paragraph().add_run().add_picture(_img_stream(image), width=Inches(5.5))
             except Exception: pass
@@ -293,6 +312,10 @@ def build_docx(data):
             r2 = rpa.add_run(m["role"]); r2.font.size = Pt(8); r2.font.color.rgb = _ORANGE
 
     doc.add_paragraph()
+    if ASSETS.get("gradbar_img"):
+        gp2 = doc.add_paragraph()
+        try: gp2.add_run().add_picture(_img_stream(ASSETS["gradbar_img"]), width=Inches(6.5))
+        except Exception: pass
     WHITE = RGBColor(0xFF, 0xFF, 0xFF)
     plate = doc.add_table(rows=1, cols=1); cell = plate.rows[0].cells[0]
     _dx_shade(cell, "E2681A")
